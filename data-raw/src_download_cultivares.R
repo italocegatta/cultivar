@@ -169,5 +169,5 @@ cultivar_protegido <- list.files("data-raw/temp_download", "protegido", full.nam
   map_df(read_excel)
 
 usethis::use_data(cultivar_protegido, overwrite = TRUE)
-writexl::write_xlsx(base_protegido, "data-raw/cultivar_protegido.xlsx")
+writexl::write_xlsx(cultivar_protegido, "data-raw/cultivar_protegido.xlsx")
 
