@@ -72,12 +72,44 @@ registro_eucalipto %>%
 
 protegido <- read_excel("data-raw/cultivar_protegido.xlsx")
 
-registro_eucalipto <- protegido %>%
+protegido_eucalipto <- protegido %>%
   filter(situacao == "PROTEÇÃO DEFINITIVA") %>%
   filter(str_detect(nome_cientifico, "Eucalyptus|Corymbia")) %>%
   mutate_if(is.POSIXct, as.Date)
 
-registro_eucalipto %>%
+protegido_eucalipto %>%
+  left_join(., group_by(., titular) %>% tally()) %>%
+  mutate(
+    fim_protecao = floor_date(fim_protecao, "month"),
+    titular = fct_reorder(titular, -n)
+  ) %>%
+  arrange(titular, fim_protecao) %>%
+  group_by(fim_protecao) %>%
+  mutate(id = row_number()) %>%
+  ggplot(aes(x = fim_protecao, y = 1, label = cultivar)) +
+    ggrepel::geom_label_repel(
+      color = "white", fill = "#01665e", direction = "y", size = 2,
+      segment.color = NA, show.legend = FALSE,
+      fontface = "bold", seed = 2001
+    ) +
+    labs(
+      x = "Término da Proteção", y = NULL,
+      title = "Serviço Nacional de Proteção de Cultivares (SNPC)",
+      subtitle =
+        "Materiais do gênero Eucalyptus protegidos no SNPC",
+      caption = "http://www.agricultura.gov.br \n@italocegatta"
+    ) +
+    scale_fill_viridis_d(end = 0.9) +
+    scale_x_date(date_breaks = "1 years", date_labels = "%Y") +
+    ggthemes::theme_fivethirtyeight() +
+    theme(
+      axis.title = element_text(), axis.title.y = element_blank(),
+      axis.text.y = element_blank(), panel.grid.major.y = element_blank()
+    ) +
+    ggsave("eucalipto_fim_protecao.png", width = 10, height = 8)
+
+
+protegido_eucalipto %>%
   mutate(cultivar = fct_reorder(cultivar, fim_protecao)) %>%
   ggplot(aes(x = inicio_protecao, xend = fim_protecao, y = cultivar, yend = cultivar)) +
   geom_segment(color = "forestgreen", alpha = 0.8, size = 3) +
@@ -100,20 +132,20 @@ registro_eucalipto %>%
   ) +
   ggsave("eucalipto_protegido_periodo.png", width = 5, height = 10)
 
-  registro_eucalipto %>%
+  protegido_eucalipto %>%
   left_join(., group_by(., titular) %>% tally()) %>%
   select(cultivar, titular, inicio_protecao, fim_protecao)
   ggplot(aes())
 
-registro_eucalipto %>%
+protegido_eucalipto %>%
   select(cultivar, titular, inicio_protecao, fim_protecao) %>%
   group_by(titular) %>%
   tally() %>%
   mutate(titular = fct_reorder(titular, n)) %>%
   ggplot(aes(n, titular)) +
   geom_segment(aes(xend = 0, yend = titular), color = "forestgreen", alpha = 0.8, size = 3) +
-  geom_point(size = 7, stroke = 2, shape = 21, color = "white", fill = "forestgreen") +
-  geom_text(aes(label = n),size = 3,  color = "white", fontface = "bold") +
+  geom_point(size = 9, stroke = 2, shape = 21, color = "white", fill = "forestgreen") +
+  geom_text(aes(label = n), size = 4,  color = "white", fontface = "bold") +
   labs(
     x = "Cultivares protegidos (#)", y = NULL,
     title = "Serviço Nacional de Proteção de Cultivares (SNPC)",
@@ -124,5 +156,9 @@ registro_eucalipto %>%
   scale_x_continuous(expand = expand_scale(mult = c(0.02, 0.05))) +
   ggthemes::theme_fivethirtyeight() +
   theme(axis.title = element_text()) +
-  ggsave("eucalipto_protegido.png", width = 10, height = 7)
+  ggsave("eucalipto_protegido.png", width = 12, height = 8)
 
+protegido_eucalipto %>%
+  group_by(nome_cientifico) %>%
+  tally() %>%
+  arrange(-n)
